@@ -7,16 +7,16 @@ stemmer = PorterStemmer()
 def search_command(args : str ,limit: int = LIMIT) -> list[dict]:
     movies = load_movies()
     results = []
+    query_tokens = stem_tokens(args)
     for movie in movies:
-        query_tokens = stem_tokens(args)
         title_tokens = stem_tokens(movie["title"])
         if matching_tokens(query_tokens,title_tokens):
             results.append(movie) 
-            if(len(results) > limit):
+            if(len(results) >= limit):
                 break
     results.sort(key = lambda movie : movie["id"])
-    return results
-
+    return results    
+    
 def pre_process( text : str ) -> str:
     text = text.lower()
     text = text.translate(str.maketrans("", "", string.punctuation))
@@ -42,9 +42,6 @@ def stem_tokens(text : str) -> list[str]:
         stemmed_tokens.append(stemmer.stem(unstemmed_token))
     return stemmed_tokens
     
-
-    
-
 def matching_tokens(str1 : list[str] , str2 : list[str]) -> bool:
     for s1 in str1:
         for s2 in str2:
