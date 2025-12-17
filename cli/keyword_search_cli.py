@@ -2,7 +2,7 @@
 
 import argparse
 from search_util import load_movies
-from keyword_search import search_command
+from keyword_search import *
 from inverted_index import *
 
 def main() -> None:
@@ -19,17 +19,14 @@ def main() -> None:
     match args.command:
         case "search":
             print(f"Searching for: {args.query}")
-            results = search_command(args.query)
+            results = search_com(args.query)
             
             for i , result in enumerate(results,1):
-                print(f"{i}.{result['title']}")
+                print(f"{i}.{result}")
         
         case "build":
-            inv_index_obj = inverted_index()
-            inv_index_obj.build()
-            inv_index_obj.save()
-            docs = inv_index_obj.get_documents("merida")
-            print(f"First document for token 'merida' = {docs[0]}")
+            build_command()
+            
 
         case _ :
             parser.print_help()
