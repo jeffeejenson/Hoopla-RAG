@@ -2,6 +2,7 @@ from search_util import LIMIT, load_movies , load_stopwords , DATA_PATH_CACHE
 import string
 from collections import defaultdict, Counter
 from nltk.stem import PorterStemmer
+import math
 
 stemmer = PorterStemmer()
 
@@ -35,6 +36,25 @@ class inverted_index:
            raise ValueError("more than one token")
         token_str = token[0]
         return self.term_frequencies[doc_id][token_str]
+    
+    def get_idf(self , term : str) -> float:
+        tokens = tokenize_text(term)
+        if len(tokens) != 1:
+            raise ValueError(f"IDF expects a single word, got: {tokens}")
+                
+        target_token = tokens[0]
+        total_doc_count = len(self.docmap)
+        term_match_docs = self.get_documents(target_token)
+        term_match_doc_count = len(term_match_docs)
+        idf = math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+        return idf
+    
+    def get_tf_idf(self, doc_id: int, term: str) -> float:
+        tf = self.get_tf(doc_id, term)
+        idf = self.get_idf(term)
+        return tf * idf
+        
+        
         
 
     def build(self):
@@ -56,15 +76,9 @@ class inverted_index:
         
     
     def load(self):
-        if not os.path.exists(self.index_file):
-            raise FileNotFoundError(f"Index file not found: {self.index_file}")
-
         with open(self.index_file, 'rb') as f:
             self.index= pickle.load(f)
-
-        if not os.path.exists(self.docmap_file):
-            raise FileNotFoundError(f"Docmap file not found: {self.docmap_file}")
-
+            
         with open(self.docmap_file, 'rb') as f:
             self.docmap= pickle.load(f)
 
@@ -120,6 +134,24 @@ def tokenize_text (text : str ) -> list[str]:
     for unstemmed_token in unstemmed_tokens:
         stemmed_tokens.append(stemmer.stem(unstemmed_token))
     return stemmed_tokens
+
+def tf_command(doc_id: int, term: str) -> int:
+    idx = inverted_index()
+    idx.load()
+    return idx.get_tf(doc_id, term)
+
+
+def idf_command(term: str) -> float:
+    idx = inverted_index()
+    idx.load()
+    return idx.get_idf(term)
+
+
+def tfidf_command(doc_id: int, term: str) -> float:
+    idx = inverted_index()
+    idx.load()
+    return idx.get_tf_idf(doc_id, term)
+
 
 
 
