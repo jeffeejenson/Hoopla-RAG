@@ -1,6 +1,6 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from search_util import load_movies,DATA_PATH_CACHE
+from search_util import load_movies,DATA_PATH_CACHE,LIMIT
 import os
 
 
@@ -106,6 +106,42 @@ def cosine_similarity(vec1, vec2):
         return 0.0
 
     return dot_product / (norm1 * norm2)
+
+def embedded_search(query : str, limit= LIMIT) -> None:
+    semSearch = SemanticSearch()      
+    movies = load_movies()
+    semSearch.load_or_create_embeddings(movies)        
+    results = semSearch.search(query, limit)
+            
+    for i, result in enumerate(results, 1):
+        print(f"{i}. {result['title']} (score: {result['score']:.4f})")
+        print(f"   {result['description']}")
+        print() 
+
+def chunk_text( query : str , chunk_size :int ,overlap :int) -> None:
+    words = query.split()
+    chunks = []
+    overlap_words = []
+        
+    for i in range(0, len(words), chunk_size):
+        chunk_words = words[i : i + chunk_size]
+        chunk_sentence = []
+        if overlap_words:
+            chunk_words = overlap_words + chunk_words
+        if overlap > 0:
+                overlap_words = chunk_words[-overlap:] if len(chunk_words) >= overlap else chunk_words
+        else:
+            overlap_words = []
+
+        chunk_sentence = " ".join(chunk_words)
+        chunks.append(chunk_sentence)
+        
+    count = len(query)
+    print(f"Chunking {count} characters")
+
+    for i, chunk in enumerate(chunks, 1):
+        print(f"{i}. {chunk}")
+
 
 
 
