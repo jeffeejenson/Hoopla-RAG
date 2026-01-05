@@ -9,6 +9,11 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 DATA_PATH_MOVIE = os.path.join(PROJECT_ROOT , "data" , "movies.json")
 DATA_PATH_STOP_WORDS = os.path.join(PROJECT_ROOT , "data" , "stopwords.txt")
 DATA_PATH_CACHE = os.path.join(PROJECT_ROOT,"cache")
+DEFAULT_CHUNK_SIZE = 200
+DEFAULT_CHUNK_OVERLAP = 0
+DEFAULT_SEMANTIC_CHUNK_SIZE = 4
+SCORE_PRECISION = 2
+
 
 
 
