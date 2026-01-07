@@ -67,7 +67,7 @@ def main() -> None:
             print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
 
         case "bm25tf":
-            bm25tf = bm25_tf_command(args.doc_id , args.term , args.k1)
+            bm25tf = bm25_tf_command(args.doc_id , args.term , args.k1 , args.b)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
         
         case "bm25search":

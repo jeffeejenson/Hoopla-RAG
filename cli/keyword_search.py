@@ -103,14 +103,6 @@ class inverted_index:
         top_doc_ids = sorted(scores, key=scores.get, reverse=True)[:limit]
         return top_doc_ids
         
-
-
-
-
-
-
-
-
     def build(self):
         movies = load_movies()
         for movie in movies:
@@ -229,10 +221,6 @@ def bm25_command(query : str) -> list[dict]:
     movie_doc_ids = idx.bm25_search(query , 5)
     results = []
     tokens = tokenize_text(query)
-    sum = 0
-    
-    
-    
     for movie_doc_id in movie_doc_ids:
         sum = 0
         for token in tokens:
