@@ -59,7 +59,69 @@ class HybridSearch:
         return results    
 
     def rrf_search(self, query, k, limit=10):
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+        bm25_results = self._bm25_search(query,limit * 500)
+        bm25 : list[dict] = []
+        bm25_results = sorted(bm25_results , key = lambda item : item["score"] , reverse = True)
+        for i,result in enumerate(bm25_results,1):
+            temp_dict = {"docID" : result["docID"], "bm25_rank" : i, "bm25_score": result["score"]}
+            bm25.append(temp_dict)
+        
+
+        sem_results = self.semantic_search.search_chunks(query , limit * 500)
+        sem : list[dict] = []
+        sem_results = sorted(sem_results , key =lambda item : item["score"] , reverse = True )
+        for i,result in enumerate(sem_results , 1):
+            temp_dict = {"docID" : result["id"], "sem_rank" : i, "sem_score": result["score"]}
+            sem.append(temp_dict)
+        
+        combined : dict[int,dict] = {}
+
+        for bm in bm25:
+            bm["sem_rank"] = 0
+            bm["sem_score"] = 0
+
+            combined[bm["docID"]] = bm
+        
+        for sm in sem:
+            if sm["docID"] in combined:
+                combined[sm["docID"]]["sem_rank"] = sm["sem_rank"]
+                combined[sm["docID"]]["sem_score"] = sm["sem_score"]
+            else:
+                sm["bm25_rank"] = 0
+                sm["bm25_score"] = 0
+
+                combined[sm["docID"]] = sm
+        
+        for doc_id in combined:
+            rrf_bm25 = self.rrf_score(combined[doc_id]["bm25_rank"],k)
+            rrf_sem = self.rrf_score(combined[doc_id]["sem_rank"],k)
+            rrf_total = rrf_bm25 + rrf_sem
+
+            combined[doc_id]["rrf_score"] = rrf_total
+
+        results : list[dict] = []
+
+        for doc_id,scores in combined.items():
+            temp_dict = {"title" : self.semantic_search.documents_map[doc_id]["title"], "rrf_score": scores["rrf_score"] , "bm25_rank" : scores["bm25_rank"], "sem_rank" : scores["sem_rank"], "description":self.semantic_search.documents_map[doc_id]["description"] }
+            results.append(temp_dict)
+
+        final_results = sorted(results , key = lambda item :item["rrf_score"] , reverse = True)[:limit]
+
+        return final_results
+
+
+
+
+
+            
+            
+     
+
+
+    def rrf_score(self , rank, k=60):
+        if rank == 0:
+            return 0
+        return 1 / (k + rank)
     
     def hybrid_score(self , bm25_score : float, semantic_score : float, alpha=0.5) -> float:
         return alpha * bm25_score + (1.0 - alpha) * semantic_score

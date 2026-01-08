@@ -15,6 +15,13 @@ def main() -> None:
     weighted_search_parser.add_argument("--alpha" , type = float , default=0.5, help = "key in the alpha value")
     weighted_search_parser.add_argument("--limit" , type = int, default=5, help = "key in the limit" )
 
+    rrf_search_parser = subparsers.add_parser("rrf-search" , help = "perfirm rrf search" )
+    rrf_search_parser.add_argument("query" , type = str , help = "Type in the qquery")
+    rrf_search_parser.add_argument("-k" , type = int ,default= 60, help = "K value for rrf")
+    rrf_search_parser.add_argument("--limit" , type = int ,default= 5, help = "limit of movies")
+
+
+
 
 
     args = parser.parse_args()
@@ -38,6 +45,17 @@ def main() -> None:
                 print(f"Hybrid Score :{result["Hybrid Score"]:.4f}")
                 print(f"BM25 : {result["BM25"]:.4f}   ,Semantic : {result["Semantic"]:.4f}")
                 print(f"{result["Description"]} ")
+        
+        case "rrf-search":
+            hyb = HybridSearch(load_movies())
+
+            results = hyb.rrf_search(args.query, args.k, args.limit)
+
+            for i,result in enumerate(results,1):
+                print(f"{i}. {result["title"]} ")
+                print(f"RRF Score :{result["rrf_score"]:.4f}")
+                print(f"BM25 RANK : {result["bm25_rank"]:.4f}   ,Semantic Rank : {result["sem_rank"]:.4f}")
+                print(f"{result["description"][:100]} ")
 
 
 
