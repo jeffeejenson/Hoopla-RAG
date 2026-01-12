@@ -4,6 +4,10 @@ from hybrid_search import normalise_scores,HybridSearch
 from search_util import load_movies
 from dotenv import load_dotenv
 from google import genai
+from enhance import result_rerank_individual,result_rerank_batch
+import time
+import json
+from sentence_transformers import CrossEncoder
 
 
 
@@ -24,7 +28,7 @@ def main() -> None:
     rrf_search_parser.add_argument("-k" , type = int ,default= 60, help = "K value for rrf")
     rrf_search_parser.add_argument("--limit" , type = int ,default= 5, help = "limit of movies")
     rrf_search_parser.add_argument("--enhance",type=str,choices=["spell","rewrite","expand"],help="Query enhancement method",)
-    rrf_search_parser.add_argument("--rerank-method" , type = str ,choices =["individual"], help = "rerank method")
+    rrf_search_parser.add_argument("--rerank-method" , type = str ,choices =["individual", "batch","cross_encoder"], help = "rerank method")
 
 
 
@@ -134,11 +138,82 @@ def main() -> None:
                 print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
             
             if args.rerank_method == "individual":
+                results = hyb.rrf_search(args.query, args.k, args.limit * 5)
+                for result in results:
+                    result["reranked_score"] = float(result_rerank_individual(args.query , result))
+                    time.sleep(3)
+                
+                results = sorted(results , key = lambda item :item["reranked_score"] , reverse = True)[:args.limit]
+                print("Reranking top 3 results using individual method...")
+                print(f"Reciprocal Rank Fusion Results for '{args.query}' (k=60):")
+                for i,result in enumerate(results,1):
+                    print(f"{i}. {result["title"]} ")
+                    print(f"Rerank Score:{result["reranked_score"]:.4f}")
+                    print(f"RRF Score :{result["rrf_score"]:.4f}")
+                    print(f"BM25 RANK : {result["bm25_rank"]:.4f}   ,Semantic Rank : {result["sem_rank"]:.4f}")
+                    print(f"{result["description"][:100]} ")
+                exit(0)
+            
+            if args.rerank_method == "batch":
+                results = hyb.rrf_search(args.query, args.k, args.limit * 5)
+                result_string : str = ""
+                
+                for i,result in enumerate(results,1):
+                    result["id"] = i
+                    result_string += str(result)
+
+                id_list = json.load(result_rerank_batch(args.query , result_string))
+
+                reranked_results :list[dict] = []
+
+                for id in id_list:
+                    for result in results:
+                        if result["id"] == id:
+                            reranked_results.append(results)
+                
+                results = reranked_results[:3]
+                
+                print("Reranking top 3 results using batch method...")
+                print(f"Reciprocal Rank Fusion Results for '{args.query}' (k=60):")
+                for i,result in enumerate(results,1):
+                    print(f"{i}. {result["title"]} ")
+                    print(f"Rerank rank:{i}")
+                    print(f"RRF Score :{result["rrf_score"]:.4f}")
+                    print(f"BM25 RANK : {result["bm25_rank"]:.4f}   ,Semantic Rank : {result["sem_rank"]:.4f}")
+                    print(f"{result["description"][:100]} ")
+                exit(0)
+
+
+            if args.rerank_method == "cross_encoder":
+                results = hyb.rrf_search(args.query, args.k, args.limit * 5)
+                pairs = []
+
+                for result in results:
+                    pairs.append([args.query, f"{result.get('title', '')} - {result.get('description', '')}"])
+
+                
+                cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+                scores = cross_encoder.predict(pairs)
+
+                for score,result in zip(scores,results):
+                    result["Cross Encoder Score"] = score
+                
+                #results = sorted()
+                results = sorted(results , key = lambda item :item["Cross Encoder Score"] , reverse = True)[:args.limit]
+                print("Reranking top 25 results using cross_encoder method...")
+                print(f"Reciprocal Rank Fusion Results for '{args.query}' (k=60):")
+                for i,result in enumerate(results,1):
+                    print(f"{i}. {result["title"]} ")
+                    print(f"Cross Encoder Score:{result["Cross Encoder Score"]}")
+                    print(f"RRF Score :{result["rrf_score"]:.4f}")
+                    print(f"BM25 RANK : {result["bm25_rank"]:.4f}   ,Semantic Rank : {result["sem_rank"]:.4f}")
+                    print(f"{result["description"][:100]} ")
+                exit(0)
 
 
 
 
-                            
+                
             for i,result in enumerate(results,1):
                 print(f"{i}. {result["title"]} ")
                 print(f"RRF Score :{result["rrf_score"]:.4f}")
