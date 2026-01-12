@@ -1,14 +1,5 @@
 import argparse
-import os
-from hybrid_search import normalise_scores,HybridSearch
-from search_util import load_movies
-from dotenv import load_dotenv
-from google import genai
-from enhance import result_rerank_individual,result_rerank_batch
-import time
-import json
-from sentence_transformers import CrossEncoder
-
+from hybrid_search import normalise_command,weighted_search_command,rrf_search_command
 
 
 def main() -> None:
@@ -38,112 +29,30 @@ def main() -> None:
 
     match args.command:
         case "normalize":
-            mp_obj = map(float,args.scores)
-            plain_scores = list(mp_obj)
-            scores = normalise_scores(plain_scores)
+            scores = normalise_command(args.scores)
             for score in scores:
                 print(f"* {score:.4f}")
 
             
         case "weighted-search":
-            hyb = HybridSearch(load_movies())
-           # hyb.documents = load_movies()
-            results = hyb.weighted_search(args.query,args.alpha,args.limit)
+            results = weighted_search_command(args.query,args.alpha,args.limit)
 
             for i,result in enumerate(results,1):
                 print(f"{i}. {result["title"]} ")
                 print(f"Hybrid Score :{result["Hybrid Score"]:.4f}")
                 print(f"BM25 : {result["BM25"]:.4f}   ,Semantic : {result["Semantic"]:.4f}")
-                print(f"{result["Description"]} ")
+                print(f"{result["Description"][:100]} ")
         
         case "rrf-search":
-
-            hyb = HybridSearch(load_movies())
             results = []
             if args.enhance == None:
-                results = hyb.rrf_search(args.query, args.k, args.limit)
-            elif args.enhance == "spell":
-                load_dotenv()
-                api_key = os.environ.get("GEMINI_API_KEY")
-                client = genai.Client(api_key=api_key)
-                prompt = f"""Fix any spelling errors in this movie search query.
-
-                            Only correct obvious typos. Don't change correctly spelled words.
-
-                            Query: "{args.query}"
-
-                            If no errors, return the original query.
-                            Corrected:"""
-                response = client.models.generate_content( model='gemini-2.5-flash-lite', contents=prompt)
-                query = response.text
-                results = hyb.rrf_search(query, args.k, args.limit)
-                #'gemini-2.5-flash-lite'
-                #'gemini-2.0-flash-001'
-                print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
-            
-            
-            elif args.enhance == "rewrite":
-                load_dotenv()
-                api_key = os.environ.get("GEMINI_API_KEY")
-                client = genai.Client(api_key=api_key)
-                prompt = f"""Rewrite this movie search query to be more specific and searchable.
-
-                            Original: "{args.query}"
-
-                            Consider:
-                                - Common movie knowledge (famous actors, popular films)
-                                - Genre conventions (horror = scary, animation = cartoon)
-                                - Keep it concise (under 10 words)
-                                - It should be a google style search query that's very specific
-                                - Don't use boolean logic
-
-                            Examples:
-
-                            - "that bear movie where leo gets attacked" -> "The Revenant Leonardo DiCaprio bear attack"
-                            - "movie about bear in london with marmalade" -> "Paddington London marmalade"
-                            -  "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
-
-                            Rewritten query:"""
-                response = client.models.generate_content( model='gemini-2.5-flash-lite', contents=prompt)
-                query = response.text
-                results = hyb.rrf_search(query, args.k, args.limit)
-                #'gemini-2.5-flash-lite'
-                #'gemini-2.0-flash-001'
-            
-                print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
-
-            elif args.enhance == "expand":
-                load_dotenv()
-                api_key = os.environ.get("GEMINI_API_KEY")
-                client = genai.Client(api_key=api_key)
-                prompt =f"""Expand this movie search query with related terms.
-
-                            Add synonyms and related concepts that might appear in movie descriptions.
-                            Keep expansions relevant and focused.
-                            This will be appended to the original query.
-
-                            Examples:
-
-                            - "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
-                            - "action movie with bear" -> "action thriller bear chase fight adventure"
-                            - "comedy with bear" -> "comedy funny bear humor lighthearted"
-
-                            Query: "{args.query}"""
-                response = client.models.generate_content( model='gemini-2.5-flash-lite', contents=prompt)
-                query = response.text
-                results = hyb.rrf_search(query, args.k, args.limit)
-                #'gemini-2.5-flash-lite'
-                #'gemini-2.0-flash-001'
-            
-                print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
+                results = rrf_search_command(args.query, args.k, args.limit)
+                
+            elif args.enhance is not None:
+                results = rrf_search_command(args.query, args.k, args.limit , args.enhance)
             
             if args.rerank_method == "individual":
-                results = hyb.rrf_search(args.query, args.k, args.limit * 5)
-                for result in results:
-                    result["reranked_score"] = float(result_rerank_individual(args.query , result))
-                    time.sleep(3)
-                
-                results = sorted(results , key = lambda item :item["reranked_score"] , reverse = True)[:args.limit]
+                results = rrf_search_command(args.query, args.k, args.limit * 5 , args.enhance , args.rerank_method)
                 print("Reranking top 3 results using individual method...")
                 print(f"Reciprocal Rank Fusion Results for '{args.query}' (k=60):")
                 for i,result in enumerate(results,1):
@@ -155,23 +64,7 @@ def main() -> None:
                 exit(0)
             
             if args.rerank_method == "batch":
-                results = hyb.rrf_search(args.query, args.k, args.limit * 5)
-                result_string : str = ""
-                
-                for i,result in enumerate(results,1):
-                    result["id"] = i
-                    result_string += str(result)
-
-                id_list = json.load(result_rerank_batch(args.query , result_string))
-
-                reranked_results :list[dict] = []
-
-                for id in id_list:
-                    for result in results:
-                        if result["id"] == id:
-                            reranked_results.append(results)
-                
-                results = reranked_results[:3]
+                results = rrf_search_command(args.query, args.k, args.limit * 5 , args.enhance , args.rerank_method)
                 
                 print("Reranking top 3 results using batch method...")
                 print(f"Reciprocal Rank Fusion Results for '{args.query}' (k=60):")
@@ -185,21 +78,7 @@ def main() -> None:
 
 
             if args.rerank_method == "cross_encoder":
-                results = hyb.rrf_search(args.query, args.k, args.limit * 5)
-                pairs = []
-
-                for result in results:
-                    pairs.append([args.query, f"{result.get('title', '')} - {result.get('description', '')}"])
-
-                
-                cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
-                scores = cross_encoder.predict(pairs)
-
-                for score,result in zip(scores,results):
-                    result["Cross Encoder Score"] = score
-                
-                #results = sorted()
-                results = sorted(results , key = lambda item :item["Cross Encoder Score"] , reverse = True)[:args.limit]
+                results = rrf_search_command(args.query, args.k, args.limit * 5 , args.enhance ,args.rerank_method)
                 print("Reranking top 25 results using cross_encoder method...")
                 print(f"Reciprocal Rank Fusion Results for '{args.query}' (k=60):")
                 for i,result in enumerate(results,1):
@@ -209,10 +88,6 @@ def main() -> None:
                     print(f"BM25 RANK : {result["bm25_rank"]:.4f}   ,Semantic Rank : {result["sem_rank"]:.4f}")
                     print(f"{result["description"][:100]} ")
                 exit(0)
-
-
-
-
                 
             for i,result in enumerate(results,1):
                 print(f"{i}. {result["title"]} ")

@@ -1,7 +1,13 @@
 import os
+import time
+
 
 from keyword_search import inverted_index,bm25_command
 from semantic_search import ChunkedSemanticSearch
+from search_util import load_movies
+from enhance import spell_correction_query , rewrite_query , expand_query 
+from rerank import result_rerank_individual , result_rerank_batch , cross_encoder
+
 
 
 class HybridSearch:
@@ -109,15 +115,6 @@ class HybridSearch:
 
         return final_results
 
-
-
-
-
-            
-            
-     
-
-
     def rrf_score(self , rank, k=60):
         if rank == 0:
             return 0
@@ -133,6 +130,80 @@ def normalise_scores( score_element : float , scores : list[float]) -> float:
         if min_score == max_score:
             return 1.0000
         return (score_element - min_score) / (max_score - min_score)
+    
+def normalise_command( scores : list[str] ) -> list[float]:
+    mp_obj = map(float,scores)
+    plain_scores = list(mp_obj)
+    normalised_scores = []
+    for each_score in plain_scores:
+        normalised_scores.append(normalise_scores(each_score,plain_scores))
+    
+    return normalised_scores
+
+def weighted_search_command( query : str , alpha : float , limit : int) -> list[dict]:
+    hyb = HybridSearch(load_movies())
+    results = hyb.weighted_search( query, alpha, limit)
+    return results
+
+def rrf_search_command(query : str , k : int , limit : int , enhance : str = None, rerank : str = None) -> list[dict]:
+    hyb = HybridSearch(load_movies())
+    results : list[dict] = []
+    if enhance == None:
+        results = hyb.rrf_search(query, k, limit)
+
+    elif enhance == "spell":
+        spell_corrected_query = spell_correction_query(query)
+        print(f"Enhanced query ({enhance}): '{query}' -> '{spell_corrected_query}'\n")
+        results = hyb.rrf_search(spell_corrected_query, k, limit )
+        
+    elif enhance == "rewrite":
+        rewritten_query = rewrite_query(query)
+        print(f"Enhanced query ({enhance}): '{query}' -> '{rewritten_query}'\n")
+        results = hyb.rrf_search(rewritten_query , k , limit)
+        
+    elif enhance == "expand":
+        expanded_query = expand_query(query)
+        print(f"Enhanced query ({enhance}): '{query}' -> '{expanded_query}'\n")
+        results = hyb.rrf_search(expanded_query , k , limit)
+    
+    if rerank == "individual":
+        results = hyb.rrf_search(query, k, limit * 5)
+        for result in results:
+            result["reranked_score"] = float(result_rerank_individual(query , result))
+            time.sleep(20)
+                
+        results = sorted(results , key = lambda item :item["reranked_score"] , reverse = True)[:3]
+
+    if rerank == "batch":
+        results = hyb.rrf_search(query, k, limit * 5)
+        result_string : str = ""
+                
+        for i,result in enumerate(results,1):
+            result["id"] = i
+            result_string += str(result)
+
+        id_list = result_rerank_batch(query , result_string)
+
+        reranked_results :list[dict] = []
+
+        for id in id_list:
+            for result in results:
+                if result["id"] == id:
+                    reranked_results.append(result)
+                
+        results = reranked_results[:3]
+    
+    if rerank == "cross_encoder":
+        results = cross_encoder(query , hyb.rrf_search(query , k , limit * 5) , limit)
+
+    return results
+    
+    
+    
+    
+
+
+    
 
             
         
