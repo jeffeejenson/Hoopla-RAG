@@ -7,6 +7,8 @@ from semantic_search import ChunkedSemanticSearch
 from search_util import load_movies
 from enhance import spell_correction_query , rewrite_query , expand_query 
 from rerank import result_rerank_individual , result_rerank_batch , cross_encoder
+from enhance_local import spell_correction_query_local,rewrite_query_local,expand_query_local
+from rerank_local import result_rerank_batch_local,result_rerank_individual_local,cross_encoder_local
 
 
 
@@ -152,27 +154,27 @@ def rrf_search_command(query : str , k : int , limit : int , enhance : str = Non
         results = hyb.rrf_search(query, k, limit)
 
     elif enhance == "spell":
-        spell_corrected_query = spell_correction_query(query)
+        spell_corrected_query = spell_correction_query_local(query)
         print(f"Enhanced query ({enhance}): '{query}' -> '{spell_corrected_query}'\n")
         results = hyb.rrf_search(spell_corrected_query, k, limit )
         
     elif enhance == "rewrite":
-        rewritten_query = rewrite_query(query)
+        rewritten_query = rewrite_query_local(query)
         print(f"Enhanced query ({enhance}): '{query}' -> '{rewritten_query}'\n")
         results = hyb.rrf_search(rewritten_query , k , limit)
         
     elif enhance == "expand":
-        expanded_query = expand_query(query)
+        expanded_query = expand_query_local(query)
         print(f"Enhanced query ({enhance}): '{query}' -> '{expanded_query}'\n")
         results = hyb.rrf_search(expanded_query , k , limit)
     
     if rerank == "individual":
-        results = hyb.rrf_search(query, k, limit * 5)
+        results = hyb.rrf_search(query, k, limit *5 )
         for result in results:
-            result["reranked_score"] = float(result_rerank_individual(query , result))
-            time.sleep(20)
+            result["reranked_score"] = float(result_rerank_individual_local(query , result))
+            #time.sleep(20)
                 
-        results = sorted(results , key = lambda item :item["reranked_score"] , reverse = True)[:3]
+        results = sorted(results , key = lambda item :item["reranked_score"] , reverse = True)[:limit]
 
     if rerank == "batch":
         results = hyb.rrf_search(query, k, limit * 5)
@@ -182,7 +184,7 @@ def rrf_search_command(query : str , k : int , limit : int , enhance : str = Non
             result["id"] = i
             result_string += str(result)
 
-        id_list = result_rerank_batch(query , result_string)
+        id_list = result_rerank_batch_local(query , result_string)
 
         reranked_results :list[dict] = []
 
@@ -194,7 +196,7 @@ def rrf_search_command(query : str , k : int , limit : int , enhance : str = Non
         results = reranked_results[:3]
     
     if rerank == "cross_encoder":
-        results = cross_encoder(query , hyb.rrf_search(query , k , limit * 5) , limit)
+        results = cross_encoder_local(query , hyb.rrf_search(query , k , limit * 5) , limit)
 
     return results
     
