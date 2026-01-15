@@ -214,11 +214,11 @@ def bm25_tf_command(doc_id :int , term :str , k1= BM25_K1 , b = BM25_B) -> float
     idx.load()
     return idx.get_bm25_tf(doc_id , term , k1 ,b)
 
-def bm25_command(query : str) -> list[dict]:
+def bm25_command(query : str , limit : int = LIMIT) -> list[dict]:
     # send back a list of dictionaries = [{docID: , title: , score:}]
     idx = inverted_index()
     idx.load()
-    movie_doc_ids = idx.bm25_search(query , 5)
+    movie_doc_ids = idx.bm25_search(query , limit)
     results = []
     tokens = tokenize_text(query)
     for movie_doc_id in movie_doc_ids:

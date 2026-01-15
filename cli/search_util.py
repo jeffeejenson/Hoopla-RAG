@@ -13,6 +13,7 @@ DEFAULT_CHUNK_SIZE = 200
 DEFAULT_CHUNK_OVERLAP = 0
 DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 SCORE_PRECISION = 2
+GOLDEN_DATA_SET = os.path.join(PROJECT_ROOT , "data" , "golden_dataset.json")
 
 
 
@@ -28,6 +29,13 @@ def load_stopwords() -> list[str]:
         stop_words = file.read()
         stop_words_list = stop_words.splitlines()
     return stop_words_list
+
+def load_golden_dataset() -> dict:
+    with open(GOLDEN_DATA_SET, "r") as f:
+        golden_dataset = json.load(f)
+    
+    return golden_dataset
+
 """
 def path_create(root: str, sub: str) -> str:
     FILE_PATH = os.path.join(root, sub)

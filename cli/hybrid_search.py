@@ -25,7 +25,7 @@ class HybridSearch:
 
     def _bm25_search(self, query, limit):
         #self.idx.load()
-        results = bm25_command(query)[:limit]
+        results = bm25_command(query,limit)
         return results
 
     def weighted_search(self, query, alpha, limit=5) -> list[dict]:
@@ -85,7 +85,7 @@ class HybridSearch:
         combined : dict[int,dict] = {}
 
         for bm in bm25:
-            bm["sem_rank"] = 0
+            bm["sem_rank"] = None
             bm["sem_score"] = 0
 
             combined[bm["docID"]] = bm
@@ -95,7 +95,7 @@ class HybridSearch:
                 combined[sm["docID"]]["sem_rank"] = sm["sem_rank"]
                 combined[sm["docID"]]["sem_score"] = sm["sem_score"]
             else:
-                sm["bm25_rank"] = 0
+                sm["bm25_rank"] = None
                 sm["bm25_score"] = 0
 
                 combined[sm["docID"]] = sm
@@ -118,7 +118,7 @@ class HybridSearch:
         return final_results
 
     def rrf_score(self , rank, k=60):
-        if rank == 0:
+        if rank == None:
             return 0
         return 1 / (k + rank)
     
@@ -147,7 +147,7 @@ def weighted_search_command( query : str , alpha : float , limit : int) -> list[
     results = hyb.weighted_search( query, alpha, limit)
     return results
 
-def rrf_search_command(query : str , k : int , limit : int , enhance : str = None, rerank : str = None) -> list[dict]:
+def rrf_search_command(query : str , k : int , limit : int , enhance : str = None, rerank : str = None ) -> list[dict]:
     hyb = HybridSearch(load_movies())
     results : list[dict] = []
     if enhance == None:

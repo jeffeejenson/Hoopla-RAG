@@ -1,5 +1,6 @@
 import argparse
 from hybrid_search import normalise_command,weighted_search_command,rrf_search_command
+from lib.evaluation import llm_judge_results
 
 
 def main() -> None:
@@ -20,6 +21,7 @@ def main() -> None:
     rrf_search_parser.add_argument("--limit" , type = int ,default= 5, help = "limit of movies")
     rrf_search_parser.add_argument("--enhance",type=str,choices=["spell","rewrite","expand"],help="Query enhancement method",)
     rrf_search_parser.add_argument("--rerank-method" , type = str ,choices =["individual", "batch","cross_encoder"], help = "rerank method")
+    rrf_search_parser.add_argument("--evaluate" , action="store_true", help = "evaluating the result using LLM")
 
 
 
@@ -45,6 +47,12 @@ def main() -> None:
         
         case "rrf-search":
             results = []
+            if args.evaluate:
+                results = rrf_search_command(args.query, args.k, args.limit)
+                llm_results = llm_judge_results(args.query , results)
+                for i,result in enumerate(results,0):
+                    print(f"{i+1}{result["title"]}: {llm_results[i]}/3")
+                    
             if args.enhance == None:
                 results = rrf_search_command(args.query, args.k, args.limit)
                 
