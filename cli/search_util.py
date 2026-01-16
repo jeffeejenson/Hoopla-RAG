@@ -30,13 +30,14 @@ def load_stopwords() -> list[str]:
         stop_words_list = stop_words.splitlines()
     return stop_words_list
 
+"""
 def load_golden_dataset() -> dict:
     with open(GOLDEN_DATA_SET, "r") as f:
         golden_dataset = json.load(f)
     
     return golden_dataset
 
-"""
+
 def path_create(root: str, sub: str) -> str:
     FILE_PATH = os.path.join(root, sub)
     if not os.path.exists(FILE_PATH):

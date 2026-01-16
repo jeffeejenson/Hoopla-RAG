@@ -2,13 +2,13 @@ import os
 import time
 
 
-from keyword_search import inverted_index,bm25_command
-from semantic_search import ChunkedSemanticSearch
+from .keyword_search import inverted_index,bm25_command
+from .semantic_search import ChunkedSemanticSearch
 from search_util import load_movies
-from enhance import spell_correction_query , rewrite_query , expand_query 
-from rerank import result_rerank_individual , result_rerank_batch , cross_encoder
-from enhance_local import spell_correction_query_local,rewrite_query_local,expand_query_local
-from rerank_local import result_rerank_batch_local,result_rerank_individual_local,cross_encoder_local
+from .enhance import spell_correction_query , rewrite_query , expand_query 
+from .rerank import result_rerank_individual , result_rerank_batch , cross_encoder
+from .enhance_local import spell_correction_query_local,rewrite_query_local,expand_query_local
+from .rerank_local import result_rerank_batch_local,result_rerank_individual_local,cross_encoder_local
 
 
 

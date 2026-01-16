@@ -74,7 +74,7 @@ def main():
             question_response = question_result["question-respone"]
             print("Search Results:")
             for i , rrf_result in enumerate(rrf_results):
-                print(f"{i}.{rrf_result["title"]}")
+                print(f"{i + 1}.{rrf_result["title"]}")
             print("Answers:")
             print(question_response)
 

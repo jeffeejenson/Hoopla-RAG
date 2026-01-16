@@ -17,7 +17,7 @@ class SemanticSearch :
     def build_embeddings(self, documents : list[dict]):
         self.documents = documents
         movie_title_desc = []
-
+        
         for document in documents:
             self.documents_map[document["id"]] = document
             movie_title_desc.append(f"{document['title']}  {document['description']}")

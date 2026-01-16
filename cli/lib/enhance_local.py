@@ -68,6 +68,4 @@ def expand_query_local( query : str ) -> str:
     
     response = ollama.generate(model='gemma3:4b', prompt=text)
     return response['response']
-    
-
 

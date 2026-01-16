@@ -1,5 +1,5 @@
 import argparse
-from hybrid_search import normalise_command,weighted_search_command,rrf_search_command
+from lib.hybrid_search import normalise_command,weighted_search_command,rrf_search_command
 from lib.evaluation import llm_judge_results
 
 

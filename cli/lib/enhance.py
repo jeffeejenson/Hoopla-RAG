@@ -69,5 +69,5 @@ def expand_query( query : str ) -> str:
                 Query: "{query}"""
     response = client.models.generate_content( model='gemini-2.5-flash-lite', contents=prompt)
     query = response.text
-    return query
+    return query    
 

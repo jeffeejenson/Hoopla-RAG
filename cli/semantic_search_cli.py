@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from semantic_search import SemanticSearch,embed_text,verify_model,verify_embeddings,embed_query_text,embedded_search,chunk_text,chunk_text_semantic,ChunkedSemanticSearch,semantic_chunk1
+from cli.lib.semantic_search import SemanticSearch,embed_text,verify_model,verify_embeddings,embed_query_text,embedded_search,chunk_text,chunk_text_semantic,ChunkedSemanticSearch,semantic_chunk1
 from search_util import LIMIT,load_movies
 def main():
     parser = argparse.ArgumentParser(description="Semantic Search CLI")

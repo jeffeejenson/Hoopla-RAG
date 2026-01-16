@@ -2,7 +2,7 @@
 
 import argparse
 from search_util import load_movies , BM25_K1 , BM25_B
-from keyword_search import *
+from cli.lib.keyword_search import *
 
 
 def main() -> None:
